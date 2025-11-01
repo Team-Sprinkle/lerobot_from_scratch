@@ -63,6 +63,57 @@ List connected cameras, print metadata and capture image with the camera
 #### Learning level (0-5)
 0
 
+### Record the dataset
+
+#### [Link to code](https://github.com/huggingface/lerobot/blob/main/src/lerobot/scripts/lerobot_record.py)
+
+#### What does the script do
+
+Script to record data from generic teleoperator device or by a policy. Creates a robot and a dataset and sets up a recording loop for a fixed amount of time
+
+#### Learning level (0-5)
+5
+
+### Visualise the dataset
+
+#### [Link to code](https://github.com/huggingface/lerobot/blob/main/src/lerobot/scripts/lerobot_dataset_viz.py)
+
+#### What does the script do
+
+Visualises dataset of type LeRobotDataset. Not needed if pushing data to hugging face
+
+#### Learning level (0-5)
+2
+
+
+### Replay an episode
+
+#### [Link to code](https://github.com/huggingface/lerobot/blob/main/src/lerobot/scripts/lerobot_replay.py)
+
+#### What does the script do
+
+Loads the dataset and sends actions to a robot in a loop
+
+#### Learning level (0-5)
+2
+
+
+### Training
+
+#### [Link to code](https://github.com/huggingface/lerobot/blob/main/src/lerobot/scripts/lerobot_train.py)
+
+#### What does the script do
+
+Weights and biases setup, policy setup, dataloader setup, and generic training loop for a policy and then also pushes trained model to hugging face
+
+#### Learning level (0-5)
+5
+
+
+
+
+
+
 
 
 
