@@ -81,7 +81,7 @@ List connected cameras, print metadata and capture image with the camera
 
 #### What does the script do
 
-Script to record data from generic teleoperator device or by a policy. Creates a robot and a dataset and sets up a recording loop for a fixed amount of time
+Script to record data from generic teleoperator device or by a policy. Creates a robot and a dataset and sets up a recording loop for a fixed amount of time. Can also be used for inference
 
 #### Learning level (0-5)
 5
@@ -126,17 +126,23 @@ Weights and biases setup, policy setup, dataloader setup, and generic training l
 
 ## Schedule
 
-| Script                | Learning Level (0-5) | Effort | Implement? |
-|-----------------------|----------------------|--------|------------|
-| lerobot-find-port     | 0                    | N/A    |    -       |
-| lerobot-motor-setup   | 0                    | N/A    |-           |
-| lerobot-calibration   | 0                    | N/A    |-           |
-| lerobot-teleoperate   | 3                    |        |            |
-| lerobot-find-cameras  | 0                    | N/A    |-           |
-| lerobot-record-dataset| 5                    |        |            |
-| lerobot-visualize     | 2                    |        |            |
-| lerobot-replay        | 2                    |        |            |
-| lerobot-training      | 5                    |        |            |
+| Script                | Learning Level (0-5) | Effort    | Implement? |
+|-----------------------|----------------------|-----------|------------|
+| lerobot-find-port     | 0                    | N/A       |    -       |
+| lerobot-motor-setup   | 0                    | N/A       |-           |
+| lerobot-calibration   | 0                    | N/A       |-           |
+| lerobot-teleoperate   | 3                    |  3 hours  | Yes        |
+| lerobot-find-cameras  | 0                    | N/A       |-           |
+| lerobot-record-dataset| 5                    |  5 hours  | Yes        |
+| lerobot-visualize     | 2                    | N/A       |-           |
+| lerobot-replay        | 2                    | N/A       |-           |
+| lerobot-training      | 5                    | 8 hours   |Yes         |
+
+## General rules
+* Try to test on robot/ simulation after every stage
+* Setup uv project and import and use lerobot utilities
+* You are allowed to reference original code but not copy
+* Create your own directory in this repo and implement it
 
 
 
