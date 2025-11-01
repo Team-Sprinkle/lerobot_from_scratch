@@ -144,6 +144,7 @@ Weights and biases setup, policy setup, dataloader setup, and generic training l
 * Setup uv project and import and use lerobot utilities
 * You are allowed to reference original code but not copy
 * Create your own directory in this repo and implement it
+* Use SmolVLA like in the hackathon
 
 
 
