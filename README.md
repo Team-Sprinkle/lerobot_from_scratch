@@ -12,6 +12,7 @@ Repo to reproduce lerobot imitation learning from scratch (Purely for learning p
   - [Replay an episode](#replay-an-episode)
   - [Training](#training)
 - [Schedule](#schedule)
+- [General Rules](#general-rules)
 
 ## Breakdown of lerobot IL pipeline
 
