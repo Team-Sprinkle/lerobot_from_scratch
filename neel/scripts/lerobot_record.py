@@ -6,15 +6,23 @@ Record dataset from Lerobot
 """
 from dataclasses import dataclass, field
 from pathlib import Path
+import time
 
 from lerobot.configs import parser
 from lerobot.robots import RobotConfig, make_robot_from_config
 from lerobot.teleoperators import TeleoperatorConfig, make_teleoperator_from_config
 from lerobot.configs.policies import PreTrainedConfig
 from lerobot.datasets.lerobot_dataset import LeRobotDataset
+from lerobot.datasets.utils import combine_feature_dicts
+from lerobot.datasets.pipeline_features import aggregate_pipeline_dataset_features, create_initial_features
 from lerobot.utils.utils import init_logging
 from lerobot.utils.visualization_utils import init_rerun, log_rerun_data
 from lerobot.processor import make_default_processors
+from lerobot.utils.control_utils import (
+    sanity_check_dataset_robot_compatibility,
+    init_keyboard_listener
+)
+from lerobot.datasets.video_utils import VideoEncodingManager
 
 
 @dataclass
@@ -40,7 +48,7 @@ class DatasetRecordConfig:
     num_image_writer_processes: int = 0
     # Number of threads per camera, too many threads can block main thread too few might cause low cameras fps
     num_image_writer_threads_per_camera: int = 4
-    video_encoding_batch_side: int = 1
+    video_encoding_batch_size: int = 1
     rename_map: dict[str,str] = field(default_factory=dict)
 
     def __post_init__(self):
@@ -73,6 +81,10 @@ class RecordConfig:
     def __get_path_fields__(cls) -> list[str]:
         return ["policy"]
 
+
+def record_loop():
+    pass
+
 @parser.wrap()
 def record(cfg: RecordConfig) -> LeRobotDataset:
     init_logging()
@@ -84,9 +96,73 @@ def record(cfg: RecordConfig) -> LeRobotDataset:
 
     teleop_action_processor, robot_action_processor, robot_observation_processor = make_default_processors()
 
+    # Combines multiple dicts into one dict
+    dataset_features = combine_feature_dicts(
+        # Gets features from robot and transforms them with pipeline
+        aggregate_pipeline_dataset_features(
+            pipeline=teleop_action_processor,
+            initial_features=create_initial_features(
+                action=robot.action_features
+            ),
+            use_videos=cfg.dataset.video
+        ),
+        aggregate_pipeline_dataset_features(
+            pipeline=robot_observation_processor,
+            initial_features=create_initial_features(observation=robot.observation_features),
+            use_videos=cfg.dataset.video
+        )
 
+    )
 
-    pass
+    dataset = LeRobotDataset(
+        cfg.dataset.repo_id,
+        root=cfg.dataset.root,
+        batch_encoding_size=cfg.dataset.video_encoding_batch_size,
+    )
+
+    if hasattr(robot, "cameras") and len(robot.cameras) > 0:
+        dataset.start_image_writer(
+            num_processes=cfg.dataset.num_image_writer_processes,
+            num_threads=cfg.dataset.num_image_writer_threads_per_camera * len(robot.cameras)
+        )
+    sanity_check_dataset_robot_compatibility(dataset, robot, cfg.dataset.fps, dataset_features)
+
+    # Load pretrained policy TODO
+
+    robot.connect()
+    if teleop is not None:
+        teleop.connect()
+
+    listener, events = init_keyboard_listener()
+
+    with VideoEncodingManager(dataset):
+        recorded_episodes = 0
+        while recorded_episodes < cfg.dataset.num_episodes and not events["stop_recording"]:
+            print(f"Recording episode {dataset.num_episodes}")
+            record_loop()
+
+            # Sleep for 10 seconds
+            time.sleep(10)
+
+            dataset.save_episode()
+            recorded_episodes += 1
+    
+
+    print('Stop recording')
+
+    robot.disconnect()
+    if teleop is not None:
+        teleop.disconnect()
+
+    if listener is not None:
+        listener.stop()
+
+    if cfg.dataset.push_to_hub:
+        dataset.push_to_hub(tags=cfg.dataset.tags, private=cfg.dataset.private)
+
+    print('Exiting')
+
+    return dataset
 
 def main():
     record()

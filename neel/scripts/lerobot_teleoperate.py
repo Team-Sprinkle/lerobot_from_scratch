@@ -3,12 +3,14 @@ Created by Indraneel on 11/02/2025
 
 Teleoperate Lerobot
 
+sudo chmod 666 /dev/ttyACM*
+
 python scripts/lerobot_teleoperate.py \
     --robot.type=so101_follower \
-    --robot.port=/dev/ttyACM1 \
+    --robot.port=/dev/ttyACM0 \
     --robot.id=singles_inferno_dex_follower \
     --teleop.type=so101_leader \
-    --teleop.port=/dev/ttyACM0 \
+    --teleop.port=/dev/ttyACM1 \
     --teleop.id=singles_inferno_dex_leader
 
 """
