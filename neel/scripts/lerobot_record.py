@@ -3,6 +3,21 @@ Created by Indraneel on 11/03/2025
 
 Record dataset from Lerobot
 
+python scripts/lerobot_record.py \
+    --robot.type=so101_follower \
+    --robot.port=/dev/ttyACM0 \
+    --robot.id=singles_inferno_dex_follower \
+    --teleop.type=so101_leader \
+    --teleop.port=/dev/ttyACM1 \
+    --teleop.id=singles_inferno_dex_leader \
+    --display_data=true \
+    --dataset.repo_id=indraneelpatil/lerobot-teleop-no-cameras \
+    --dataset.num_episodes=5 \
+    --dataset.single_task="Grab the white box" \
+    --dataset.push_to_hub=true \
+    --dataset.episode_time_s=30 \
+    --dataset.reset_time_s=10 
+
 """
 from dataclasses import dataclass, field
 from pathlib import Path
