@@ -23,7 +23,8 @@ from lerobot.utils.visualization_utils import init_rerun, log_rerun_data
 from lerobot.processor import make_default_processors, RobotProcessorPipeline, RobotAction, RobotObservation, PolicyProcessorPipeline, PolicyAction
 from lerobot.utils.control_utils import (
     sanity_check_dataset_robot_compatibility,
-    init_keyboard_listener
+    init_keyboard_listener,
+    sanity_check_dataset_name
 )
 from lerobot.datasets.video_utils import VideoEncodingManager
 from lerobot.datasets.image_writer import safe_stop_image_writer
@@ -193,18 +194,20 @@ def record(cfg: RecordConfig) -> LeRobotDataset:
 
     )
 
-    dataset = LeRobotDataset(
-        cfg.dataset.repo_id,
-        root=cfg.dataset.root,
-        batch_encoding_size=cfg.dataset.video_encoding_batch_size,
-    )
+    # TODO Reloading existing dataset
 
-    if hasattr(robot, "cameras") and len(robot.cameras) > 0:
-        dataset.start_image_writer(
-            num_processes=cfg.dataset.num_image_writer_processes,
-            num_threads=cfg.dataset.num_image_writer_threads_per_camera * len(robot.cameras)
-        )
-    sanity_check_dataset_robot_compatibility(dataset, robot, cfg.dataset.fps, dataset_features)
+    sanity_check_dataset_name(cfg.dataset.repo_id, cfg.policy)
+    dataset = LeRobotDataset.create(
+        cfg.dataset.repo_id,
+        cfg.dataset.fps,
+        root=cfg.dataset.root,
+        robot_type=robot.name,
+        features=dataset_features,
+        use_videos=cfg.dataset.video,
+        image_writer_processes=cfg.dataset.num_image_writer_processes,
+        image_writer_threads=cfg.dataset.num_image_writer_threads_per_camera*len(robot.cameras),
+        batch_encoding_size=cfg.dataset.video_encoding_batch_size
+    )
 
     # Load pretrained policy TODO
 
