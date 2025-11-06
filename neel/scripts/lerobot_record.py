@@ -241,6 +241,12 @@ def record(cfg: RecordConfig) -> LeRobotDataset:
             # Sleep for 10 seconds
             time.sleep(cfg.dataset.reset_time_s)
 
+            if events["rerecord_episode"]:
+                print("Re recording episode")
+                events["rerecord_episode"] = False
+                dataset.clear_episode_buffer()
+                continue
+
             dataset.save_episode()
             recorded_episodes += 1
     
