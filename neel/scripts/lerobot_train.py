@@ -19,7 +19,7 @@ from lerobot.configs import parser
 from lerobot.configs.train import TrainPipelineConfig
 from lerobot.rl.wandb_utils import WandBLogger
 from lerobot.utils.random_utils import set_seed
-from lerobot.utils.utils import get_safe_torch_device, format_big_number
+from lerobot.utils.utils import get_safe_torch_device, format_big_number, has_method
 from lerobot.utils.logging_utils import AverageMeter, MetricsTracker
 from lerobot.datasets.factory import make_dataset
 from lerobot.datasets.sampler import EpisodeAwareSampler
@@ -46,6 +46,11 @@ def update_policy(
     start_time = time.perf_counter()
     device = get_device_from_parameters(policy)
     policy.train()
+
+    # This means we are doing mixed precision training
+    # Training your neural network in both 16 bit and 32 bit floating point numbers
+    # Normally pytorch does everything inn 32 bit but GPUs have special tensor cores
+    # which can do math faster in 16 bit
     with torch.autocast(device_type=device.type) if use_amp else nullcontext():
         loss, output_dict = policy.forward(batch)
     
@@ -59,7 +64,29 @@ def update_policy(
         grad_clip_norm,
         error_if_nonfinite=False
     )
-    pass
+
+    # Skips optimizer.step if gradient container infs or NaNs
+    with lock if lock is not None else nullcontext():
+        grad_scaler.step(optimizer)
+    
+    # Update scale for next iteration
+    grad_scaler.update()
+
+    optimizer.zero_grad()
+    
+    #Step through pytorch scheduler at every batch instead of epoch
+    if lr_scheduler is not None:
+        lr_scheduler.step()
+    
+    if has_method(policy, "update"):
+        # Maybe to update an internal buffer
+        policy.update()
+    
+    train_metrics.loss = loss.item()
+    train_metrics.grad_norm = grad_norm.item()
+    train_metrics.lr = optimizer.param_groups[0]["lr"]
+    train_metrics.update_s = time.perf_counter() - start_time
+    return train_metrics, output_dict
 
 @parser.wrap()
 def train(cfg: TrainPipelineConfig):
@@ -127,6 +154,7 @@ def train(cfg: TrainPipelineConfig):
     optimizer, lr_scheduler = make_optimizer_and_scheduler(cfg, policy)
 
     # Helps scale the loss before back propogation to ensure gradients dont go to zero
+    # Only use for mixed precision training
     grad_scaler = GradScaler(device.type, enabled=cfg.policy.use_amp)
 
     step = 0 # Number of policy updates
@@ -186,13 +214,21 @@ def train(cfg: TrainPipelineConfig):
         batch = preprocessor(batch)
         train_tracker.dataloading_s = time.perf_counter() - start_time
 
-        train_tracker, output_dict = update_policy()
+        train_tracker, output_dict = update_policy(
+            train_tracker,
+            policy,
+            batch,
+            optimizer,
+            cfg.optimizer.grad_clip_norm,
+            grad_scaler=grad_scaler,
+            lr_scheduler=lr_scheduler,
+            use_amp=cfg.policy.use_amp
+        )
 
         step += 1
         train_tracker.step()
         is_log_step = cfg.log_freq > 0 and step % cfg.log_freq == 0
         is_saving_step = step % cfg.save_freq == 0 or step == cfg.steps
-        is_eval_step = cfg.eval_freq > 0 and step % cfg.eval_freq == 0
 
         if is_log_step:
             logging.info(train_tracker)
